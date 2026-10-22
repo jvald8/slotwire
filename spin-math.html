@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spin Math</title>
+<meta name="description" content="How long your bankroll lasts at a slot machine, the chance you go bust, and what the casino should be giving you back in comps.">
+<meta property="og:title" content="Spin Math"><meta property="og:description" content="How long your bankroll lasts at a slot machine, the chance you go bust, and what the casino should be giving you back in comps."><meta property="og:type" content="website"><meta property="og:url" content="https://slotwire.tv/spin-math">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>html,body{margin:0} img{max-width:100%} [hidden]{display:none!important}</style>
+</head>
+<body>
+
+<style>
+  /* Layout: a two-column desk — inputs on the left like a bet panel, results on the right styled as the hand-pay slip the floor prints. Stacks to one column on phones. */
+  :root {
+    --bg: #eef0ea;
+    --panel: #ffffff;
+    --panel-2: #f5f6f1;
+    --fg: #1b1f1a;
+    --muted: #5f675e;
+    --line: #d6dbd1;
+    --accent: #8a6514;
+    --accent-soft: #f1e6c6;
+    --danger: #b42a1e;
+    --danger-soft: #f5dcd8;
+    --good: #2f6b3a;
+    --good-soft: #d9ead9;
+    --display: "Barlow Condensed", "Arial Narrow", Impact, sans-serif;
+    --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+    --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1a14; --panel: #16241d; --panel-2: #1d2e25; --fg: #efe9d8; --muted: #a7b0a4; --line: #2a3a31;
+      --accent: #d4a93a; --accent-soft: #3a3118; --danger: #e8564a; --danger-soft: #4a2320; --good: #6fbf7c; --good-soft: #1f3a27;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1a14; --panel: #16241d; --panel-2: #1d2e25; --fg: #efe9d8; --muted: #a7b0a4; --line: #2a3a31;
+    --accent: #d4a93a; --accent-soft: #3a3118; --danger: #e8564a; --danger-soft: #4a2320; --good: #6fbf7c; --good-soft: #1f3a27;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--body); font-size: 16px; line-height: 1.5;
+    padding-block: 28px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; }
+
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 22px; }
+  h1 { font-family: var(--display); font-weight: 700; font-size: clamp(34px, 5vw, 48px); letter-spacing: .01em; margin: 0; line-height: 1; text-wrap: balance; }
+  header p { margin: 0; color: var(--muted); max-width: 46ch; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 20px; align-items: start; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+  .inputs { padding: 18px 18px 8px; }
+  .eyebrow { font-family: var(--body); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+
+  .field { display: grid; gap: 6px; padding: 10px 0 14px; border-bottom: 1px solid var(--line); }
+  .field:last-child { border-bottom: 0; }
+  .field label, .field .lbl { font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .field .hint { font-weight: 400; color: var(--muted); font-size: 14px; }
+  .money { position: relative; }
+  .money::before { content: "$"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-family: var(--mono); }
+  input[type="number"] {
+    width: 100%; font: 500 18px var(--mono); padding: 9px 12px 9px 28px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--panel-2); color: var(--fg); font-variant-numeric: tabular-nums;
+  }
+  input[type="number"].plain { padding-left: 12px; }
+  input[type="number"]:focus-visible, button:focus-visible, input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .readout { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg button {
+    font: 500 14px var(--body); padding: 7px 11px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+    background: var(--panel-2); color: var(--fg);
+  }
+  .seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .custom-rtp { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; margin-top: 8px; }
+  .custom-rtp input { max-width: 140px; }
+
+  /* The slip */
+  .slip { padding: 20px 20px 18px; display: grid; gap: 18px; }
+  .slip-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-bottom: 1px dashed var(--line); padding-bottom: 10px; }
+  .slip-head .eyebrow { margin: 0; }
+  .slip-head .stamp { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+  .hero { display: grid; gap: 4px; }
+  .hero .big { font-family: var(--display); font-weight: 700; font-size: clamp(38px, 6vw, 60px); line-height: 1; letter-spacing: .005em; text-wrap: balance; }
+  .hero .big .num { font-family: var(--mono); font-weight: 600; font-size: .92em; font-variant-numeric: tabular-nums; }
+  .hero .sub { color: var(--muted); font-size: 16px; max-width: 48ch; }
+  .hero .sub strong { color: var(--fg); font-family: var(--mono); font-weight: 600; }
+
+  .bust { display: grid; gap: 6px; padding: 12px 14px; border-radius: 8px; background: var(--panel-2); border-left: 4px solid var(--accent); }
+  .bust[data-level="high"] { border-left-color: var(--danger); background: var(--danger-soft); }
+  .bust[data-level="low"] { border-left-color: var(--good); background: var(--good-soft); }
+  .bust .pct { font-family: var(--mono); font-weight: 600; font-size: 26px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .bust .txt { font-size: 15px; }
+  .bust .txt strong { font-family: var(--mono); font-weight: 600; }
+
+  .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tile { padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 2px; min-width: 0; }
+  .tile .k { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .tile .v { font-family: var(--mono); font-weight: 600; font-size: 22px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .tile .v.neg { color: var(--danger); }
+  .tile .v.pos { color: var(--good); }
+  .tile .d { font-size: 13px; color: var(--muted); }
+
+  figure { margin: 0; display: grid; gap: 6px; }
+  canvas { width: 100%; height: 170px; display: block; max-width: 100%; }
+  figcaption { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  figcaption i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
+
+  .comps { padding: 14px 16px; border-radius: 8px; background: var(--accent-soft); display: grid; gap: 6px; }
+  .comps h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; letter-spacing: .01em; }
+  .comps .range { font-family: var(--mono); font-weight: 600; font-size: 24px; font-variant-numeric: tabular-nums; }
+  .comps p { margin: 0; font-size: 15px; }
+  .comps p strong { font-family: var(--mono); font-weight: 600; }
+
+  .advice { font-size: 15px; padding: 2px 0; }
+  .advice strong { font-family: var(--mono); font-weight: 600; }
+
+  details { border-top: 1px solid var(--line); padding-top: 12px; font-size: 14px; color: var(--muted); }
+  summary { cursor: pointer; font-weight: 600; color: var(--fg); }
+  details p { margin: 8px 0 0; max-width: 62ch; }
+  details code { font-family: var(--mono); font-size: 13px; color: var(--fg); }
+
+  footer { margin-top: 22px; font-size: 13px; color: var(--muted); max-width: 70ch; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero .big, .bust .pct, .tile .v, .comps .range { transition: color .15s ease; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Spin Math</h1>
+    <p>What a slot session really costs, how likely you are to go bust, and what the casino should be giving you back.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel inputs" aria-labelledby="in-h">
+      <p class="eyebrow" id="in-h">Your session</p>
+
+      <div class="field">
+        <label for="bankroll">Bankroll <span class="hint">cash you're willing to lose today</span></label>
+        <div class="money"><input type="number" id="bankroll" min="1" step="10" value="200" inputmode="decimal"></div>
+      </div>
+
+      <div class="field">
+        <label for="bet">Bet per spin <span class="hint">total bet, all lines</span></label>
+        <div class="money"><input type="number" id="bet" min="0.01" step="0.25" value="1.00" inputmode="decimal"></div>
+      </div>
+
+      <div class="field">
+        <label for="spins">Spins per hour <span class="readout" id="spins-out">400</span></label>
+        <input type="range" id="spins" min="150" max="800" step="10" value="400">
+        <span class="hint">Most people land between 400 and 600. Slower if you're chatting, faster on autoplay.</span>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Game <span class="hint">sets the return to player</span></span>
+        <div class="seg" id="rtp-seg" role="group" aria-label="Game type">
+          <button type="button" data-rtp="89" aria-pressed="true">Penny slots, Strip · 89%</button>
+          <button type="button" data-rtp="91">Penny slots, locals · 91%</button>
+          <button type="button" data-rtp="93">Dollar slots · 93%</button>
+          <button type="button" data-rtp="96">Online slots · 96%</button>
+          <button type="button" data-rtp="99.5">Video poker, 9/6 JoB · 99.5%</button>
+        </div>
+        <div class="custom-rtp">
+          <label for="rtp" class="hint" style="font-weight:500">Or type the return to player (%)</label>
+          <input type="number" id="rtp" class="plain" min="50" max="99.9" step="0.1" value="89" inputmode="decimal">
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Volatility <span class="hint">how swingy the game is</span></span>
+        <div class="seg" id="vol-seg" role="group" aria-label="Volatility">
+          <button type="button" data-vol="4">Low</button>
+          <button type="button" data-vol="8" aria-pressed="true">Medium</button>
+          <button type="button" data-vol="12">High</button>
+        </div>
+        <span class="hint">Low: frequent small hits. High: long dry spells and big bonuses (Dragon Link, Buffalo Gold).</span>
+      </div>
+
+      <div class="field">
+        <label for="hours">Session length <span class="readout" id="hours-out">3h 0m</span></label>
+        <input type="range" id="hours" min="0.5" max="8" step="0.5" value="3">
+      </div>
+    </section>
+
+    <section class="panel slip" aria-live="polite" aria-labelledby="out-h">
+      <div class="slip-head">
+        <p class="eyebrow" id="out-h">Your slip</p>
+        <span class="stamp" id="stamp"></span>
+      </div>
+
+      <div class="hero">
+        <div class="big" id="hero-big"></div>
+        <div class="sub" id="hero-sub"></div>
+      </div>
+
+      <div class="bust" id="bust" data-level="mid">
+        <div class="pct" id="bust-pct"></div>
+        <div class="txt" id="bust-txt"></div>
+      </div>
+
+      <div class="tiles">
+        <div class="tile"><span class="k">Cost per hour</span><span class="v neg" id="t-hour"></span><span class="d">what the house keeps, on average</span></div>
+        <div class="tile"><span class="k">Average session cost</span><span class="v neg" id="t-session"></span><span class="d" id="t-session-d"></span></div>
+        <div class="tile"><span class="k">A normal swing</span><span class="v" id="t-swing"></span><span class="d">two out of three sessions land inside this</span></div>
+        <div class="tile"><span class="k">Bad night, 1 in 40</span><span class="v neg" id="t-bad"></span><span class="d" id="t-bad-d"></span></div>
+      </div>
+
+      <figure>
+        <canvas id="chart" width="600" height="170" aria-label="Distribution of session outcomes"></canvas>
+        <figcaption>
+          <span><i style="background:var(--danger)"></i>busted</span>
+          <span><i style="background:var(--muted)"></i>down, still playing</span>
+          <span><i style="background:var(--good)"></i>walked out ahead</span>
+        </figcaption>
+      </figure>
+
+      <div class="comps">
+        <h2>What you've earned in comps</h2>
+        <div class="range" id="comp-range"></div>
+        <p id="comp-txt"></p>
+      </div>
+
+      <div class="advice" id="advice"></div>
+
+      <details>
+        <summary>How the numbers work</summary>
+        <p>Every spin, the machine keeps a slice of the bet on average: the house edge, which is <code>100% − RTP</code>. Your average cost is <code>bet × spins × house edge</code>. That same number is what the casino calls your theo (theoretical loss), and it's what they base comps on.</p>
+        <p>Swings come from volatility. We model a session's result as a bell curve with that average and a spread of <code>volatility × bet × √spins</code>, then ask how often the curve crosses your bankroll before time runs out. Real slot results are lumpier than a bell curve, so treat the bust chance as a guide, not a guarantee.</p>
+        <p>Return-to-player figures are typical published ranges, not a specific machine. The same game can be set differently from one casino to the next.</p>
+      </details>
+    </section>
+  </div>
+
+  <footer><p style="margin:0 0 8px"><a href="/" style="color:inherit">← Slot Wire</a></p>Estimates for entertainment and planning. Not gambling advice, and no machine is "due." If gambling stops being fun, 1-800-GAMBLER.</footer>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    bankroll: $("bankroll"), bet: $("bet"), spins: $("spins"), spinsOut: $("spins-out"),
+    rtp: $("rtp"), rtpSeg: $("rtp-seg"), volSeg: $("vol-seg"), hours: $("hours"), hoursOut: $("hours-out"),
+    heroBig: $("hero-big"), heroSub: $("hero-sub"), bust: $("bust"), bustPct: $("bust-pct"), bustTxt: $("bust-txt"),
+    tHour: $("t-hour"), tSession: $("t-session"), tSessionD: $("t-session-d"), tSwing: $("t-swing"), tBad: $("t-bad"), tBadD: $("t-bad-d"),
+    compRange: $("comp-range"), compTxt: $("comp-txt"), advice: $("advice"), stamp: $("stamp"), chart: $("chart")
+  };
+  let vol = 8;
+
+  // ---- math ----
+  function normCdf(x) {
+    if (x < -8) return 0; if (x > 8) return 1;
+    const t = 1 / (1 + 0.2316419 * Math.abs(x));
+    const d = 0.3989422804 * Math.exp(-x * x / 2);
+    const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+    return x > 0 ? 1 - p : p;
+  }
+  // Probability a random walk with drift -b*h and per-step SD v*b hits -B within n steps.
+  function bustProb(B, b, h, v, n) {
+    if (B <= 0) return 1;
+    const mu = -n * b * h, sd = v * b * Math.sqrt(n);
+    if (sd <= 0) return mu <= -B ? 1 : 0;
+    const first = normCdf((-B - mu) / sd);
+    const expo = 2 * h * B / (v * v * b);
+    const second = expo > 600 ? 0 : Math.exp(expo) * normCdf((-B + mu) / sd);
+    return Math.max(0, Math.min(1, first + second));
+  }
+  function safeBet(B, h, v, n, maxBet, target) {
+    if (bustProb(B, maxBet, h, v, n) <= target) return maxBet;
+    let lo = 0.01, hi = maxBet;
+    if (bustProb(B, lo, h, v, n) > target) return null;
+    for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (bustProb(B, mid, h, v, n) > target) hi = mid; else lo = mid; }
+    return lo;
+  }
+
+  // ---- formatting ----
+  const money = (x, dp) => {
+    const neg = x < 0; const a = Math.abs(x);
+    const s = a.toLocaleString("en-US", { minimumFractionDigits: dp ?? (a < 10 ? 2 : 0), maximumFractionDigits: dp ?? (a < 10 ? 2 : 0) });
+    return (neg ? "−$" : "$") + s;
+  };
+  const dur = (hrs) => {
+    if (!isFinite(hrs)) return "forever";
+    const h = Math.floor(hrs), m = Math.round((hrs - h) * 60);
+    if (m === 60) return `${h + 1}h 0m`;
+    return h >= 100 ? `${Math.round(hrs)}h` : `${h}h ${m}m`;
+  };
+  const pct = (p) => p < 0.005 ? "<1%" : p > 0.995 ? ">99%" : Math.round(p * 100) + "%";
+
+  // ---- read inputs ----
+  function read() {
+    const B = Math.max(1, parseFloat(els.bankroll.value) || 0);
+    const b = Math.max(0.01, parseFloat(els.bet.value) || 0);
+    const spinsHr = parseFloat(els.spins.value);
+    const rtp = Math.min(99.9, Math.max(50, parseFloat(els.rtp.value) || 89)) / 100;
+    const hours = parseFloat(els.hours.value);
+    return { B, b, spinsHr, h: 1 - rtp, hours, n: Math.round(spinsHr * hours), v: vol };
+  }
+
+  // ---- render ----
+  function render() {
+    const s = read();
+    const { B, b, spinsHr, h, hours, n, v } = s;
+    const costHr = b * spinsHr * h;
+    const theo = n * b * h;
+    const sd = v * b * Math.sqrt(n);
+    const lastsHrs = costHr > 0 ? B / costHr : Infinity;
+    const pBust = bustProb(B, b, h, v, n);
+
+    els.spinsOut.textContent = spinsHr;
+    els.hoursOut.textContent = dur(hours);
+    els.stamp.textContent = `${money(b)} × ${n.toLocaleString()} spins · ${(100 - h * 100).toFixed(1)}% RTP`;
+
+    if (lastsHrs < hours) {
+      els.heroBig.innerHTML = `Your <span class="num">${money(B)}</span> lasts about <span class="num">${dur(lastsHrs)}</span>`;
+      els.heroSub.innerHTML = `At <strong>${money(b)}</strong> a spin you're putting <strong>${money(b * spinsHr)}</strong> an hour through the machine. The house keeps about <strong>${money(costHr)}</strong> of it. You planned ${dur(hours)}; the money runs out first on an average night.`;
+    } else {
+      const leave = B - theo;
+      els.heroBig.innerHTML = `Expect to walk out with about <span class="num">${money(Math.max(0, leave))}</span>`;
+      els.heroSub.innerHTML = `Your <strong>${money(B)}</strong> outlasts a ${dur(hours)} session on an average night, which costs about <strong>${money(theo)}</strong>. At this pace it would last roughly <strong>${dur(lastsHrs)}</strong>.`;
+    }
+
+    els.bustPct.textContent = pct(pBust);
+    const oneIn = pBust > 0 ? Math.round(1 / pBust) : null;
+    els.bustTxt.innerHTML = pBust >= 0.5
+      ? `chance you're <strong>busted before the ${dur(hours)} is up</strong>. More likely than not.`
+      : pBust >= 0.1
+        ? `chance you're <strong>busted before the ${dur(hours)} is up</strong>, about 1 in ${oneIn}.`
+        : pBust < 0.005
+          ? `chance of busting in ${dur(hours)}. Your bankroll is comfortable for this bet.`
+          : `chance you go bust in ${dur(hours)}, about 1 in ${oneIn}. You'll usually finish the session.`;
+    els.bust.dataset.level = pBust >= 0.35 ? "high" : pBust <= 0.1 ? "low" : "mid";
+
+    els.tHour.textContent = money(-costHr);
+    els.tSession.textContent = money(-theo);
+    els.tSessionD.textContent = `${money(b * n)} wagered × ${(h * 100).toFixed(1)}% house edge`;
+    els.tSwing.textContent = "±" + money(sd);
+    const bad = -theo - 2 * sd;
+    const badCapped = Math.max(bad, -B);
+    els.tBad.textContent = money(badCapped);
+    els.tBadD.textContent = bad < -B ? "that's your whole bankroll, early" : "two bad swings stacked; the walk-away number";
+
+    // comps
+    const lo = theo * 0.10, hi = theo * 0.40;
+    els.compRange.textContent = `${money(lo)} – ${money(hi)}`;
+    els.compTxt.innerHTML = `Your theo for this session is <strong>${money(theo)}</strong>. Casinos typically return 10–40% of theo as free play, food, rooms and offers. If your card is in and the mailers aren't coming, you're being under-comped. ${theo * (hours >= 1 ? 1 : 1) >= 150 ? "At this level of play a host should be willing to talk to you; ask at the players club." : "Below a few hundred in daily theo you're in mailer territory, not host territory."}`;
+
+    // advice
+    const target = 0.10;
+    const sb = safeBet(B, h, v, n, b, target);
+    if (sb === null) {
+      els.advice.innerHTML = `Even at a penny a spin this bankroll is thin for a ${dur(hours)} session. Shorten the session or bring more.`;
+    } else if (sb >= b) {
+      const upBet = (function () { let lo2 = b, hi2 = b * 50; for (let i = 0; i < 40; i++) { const mid = (lo2 + hi2) / 2; if (bustProb(B, mid, h, v, n) > target) hi2 = mid; else lo2 = mid; } return lo2; })();
+      els.advice.innerHTML = upBet > b * 1.15
+        ? `You've got room. You could bet up to <strong>${money(upBet)}</strong> a spin and still keep the bust chance under 10% for ${dur(hours)}.`
+        : `This bet suits this bankroll for ${dur(hours)}. Going much higher pushes the bust chance past 10%.`;
+    } else {
+      els.advice.innerHTML = `Drop to <strong>${money(sb)}</strong> a spin and the chance of busting in ${dur(hours)} falls under 10%. Same seat, same games, just a longer night.`;
+    }
+
+    drawChart({ mu: -theo, sd, B });
+    save();
+  }
+
+  // ---- chart: bell curve of session outcomes, shaded by what the night looks like ----
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function drawChart({ mu, sd, B }) {
+    const c = els.chart, ctx = c.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    const W = c.clientWidth || 600, H = 170;
+    c.width = W * dpr; c.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    const fg = cssVar("--fg"), muted = cssVar("--muted"), line = cssVar("--line"), danger = cssVar("--danger"), good = cssVar("--good");
+    const padL = 8, padR = 8, padT = 14, padB = 30;
+    const spread = Math.max(sd, 1);
+    let x0 = Math.min(mu - 3.5 * spread, -B * 1.05, -1), x1 = Math.max(mu + 3.5 * spread, B * 0.15, 1);
+    const toX = (x) => padL + (x - x0) / (x1 - x0) * (W - padL - padR);
+    const dens = (x) => Math.exp(-0.5 * ((x - mu) / spread) ** 2);
+    const baseY = H - padB, topY = padT;
+    const toY = (d) => baseY - d * (baseY - topY);
+
+    // bands
+    const steps = 240;
+    function fill(from, to, color, alpha) {
+      ctx.beginPath(); ctx.moveTo(toX(from), baseY);
+      for (let i = 0; i <= steps; i++) { const x = from + (to - from) * i / steps; ctx.lineTo(toX(x), toY(dens(x))); }
+      ctx.lineTo(toX(to), baseY); ctx.closePath();
+      ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.fill(); ctx.globalAlpha = 1;
+    }
+    fill(x0, Math.max(x0, -B), danger, 0.55);
+    fill(Math.max(x0, -B), Math.min(0, x1), muted, 0.28);
+    fill(Math.min(0, x1), x1, good, 0.5);
+
+    // curve
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) { const x = x0 + (x1 - x0) * i / steps; const X = toX(x), Y = toY(dens(x)); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+    ctx.strokeStyle = fg; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // baseline
+    ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(padL, baseY + 0.5); ctx.lineTo(W - padR, baseY + 0.5); ctx.stroke();
+
+    // markers
+    ctx.font = `600 12px ${cssVar("--mono")}`; ctx.textBaseline = "top";
+    function mark(x, label, color, align) {
+      const X = toX(x);
+      ctx.strokeStyle = color; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X, topY); ctx.lineTo(X, baseY); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = color; ctx.textAlign = align;
+      ctx.fillText(label, X + (align === "left" ? 4 : align === "right" ? -4 : 0), baseY + 6);
+    }
+    const bustX = toX(-B), evenX = toX(0);
+    mark(0, "even", fg, "left");
+    if (-B >= x0) mark(-B, "busted " + money(-B), danger, evenX - bustX < 90 ? "right" : "left");
+    // average
+    const avgX = toX(mu);
+    ctx.fillStyle = muted; ctx.textAlign = Math.abs(avgX - evenX) < 60 ? "right" : "center";
+    ctx.fillText("avg " + money(mu), avgX + (ctx.textAlign === "right" ? -4 : 0), topY - 12 < 0 ? 0 : topY - 12);
+  }
+
+  // ---- persistence (per-viewer convenience only) ----
+  function save() {
+    try { localStorage.setItem("spinmath", JSON.stringify({ bankroll: els.bankroll.value, bet: els.bet.value, spins: els.spins.value, rtp: els.rtp.value, hours: els.hours.value, vol })); } catch (e) {}
+  }
+  function restore() {
+    try {
+      const s = JSON.parse(localStorage.getItem("spinmath") || "null");
+      if (!s) return;
+      if (s.bankroll) els.bankroll.value = s.bankroll;
+      if (s.bet) els.bet.value = s.bet;
+      if (s.spins) els.spins.value = s.spins;
+      if (s.rtp) els.rtp.value = s.rtp;
+      if (s.hours) els.hours.value = s.hours;
+      if (s.vol) vol = Number(s.vol);
+      syncSeg(els.rtpSeg, "rtp", els.rtp.value); syncSeg(els.volSeg, "vol", String(vol));
+    } catch (e) {}
+  }
+  function syncSeg(seg, key, val) {
+    seg.querySelectorAll("button").forEach((btn) => btn.setAttribute("aria-pressed", String(btn.dataset[key] === String(val))));
+  }
+
+  // ---- wiring ----
+  ["bankroll", "bet", "spins", "rtp", "hours"].forEach((id) => els[id].addEventListener("input", () => { if (id === "rtp") syncSeg(els.rtpSeg, "rtp", els.rtp.value); render(); }));
+  els.rtpSeg.addEventListener("click", (e) => { const btn = e.target.closest("button"); if (!btn) return; els.rtp.value = btn.dataset.rtp; syncSeg(els.rtpSeg, "rtp", btn.dataset.rtp); render(); });
+  els.volSeg.addEventListener("click", (e) => { const btn = e.target.closest("button"); if (!btn) return; vol = Number(btn.dataset.vol); syncSeg(els.volSeg, "vol", btn.dataset.vol); render(); });
+  window.addEventListener("resize", () => { const s = read(); drawChart({ mu: -s.n * s.b * s.h, sd: s.v * s.b * Math.sqrt(s.n), B: s.B }); });
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  (mq.addEventListener ? mq.addEventListener("change", render) : mq.addListener(render));
+  new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  restore();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+  render();
+})();
+</script>
+
+</body>
+</html>
